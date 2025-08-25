@@ -30,7 +30,7 @@ jobs:
           ls -la Definitions/policyDefinitions || true
           find Definitions/policyDefinitions -type f -name '*.json' -print || true
 
-      - name: Validate & publish policy definitions (subscription scope)
+      - name: Validate & publish policy definitions (subscription scope 1)
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
