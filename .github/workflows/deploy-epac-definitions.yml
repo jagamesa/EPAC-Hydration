@@ -1,0 +1,62 @@
+﻿name: deploy-epac-definitions
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "Definitions/policyDefinitions/**/*.json"
+      - ".github/workflows/deploy-epac-definitions.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate JSON files
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "Definitions/policyDefinitions" -Recurse -Filter "*.json"
+          if (-not $files) { throw "No JSONs found under Definitions/policyDefinitions"; }
+          foreach ($f in $files) {
+            Write-Host "Validating $($f.FullName)"
+            Get-Content -Raw $f.FullName | ConvertFrom-Json | Out-Null
+          }
+
+      - name: Publish policy definitions (subscription scope)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $api = "2021-06-01"
+          $sub = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+          $files = Get-ChildItem "Definitions/policyDefinitions" -Recurse -Filter "*.json"
+          foreach ($f in $files) {
+            $json = Get-Content -Raw $f.FullName | ConvertFrom-Json
+            # Usa el nombre del archivo como 'name' si no viene en el JSON
+            $name = if ($json.name) { $json.name } else { [IO.Path]::GetFileNameWithoutExtension($f.Name) }
+            $uri  = "https://management.azure.com/subscriptions/$sub/providers/Microsoft.Authorization/policyDefinitions/$name?api-version=$api"
+            Write-Host "PUT $uri from $($f.FullName)"
+            az rest --method put --url $uri --headers "Content-Type=application/json" --body "@$($f.FullName)"
+          }
+
+      - name: Verify definitions published
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem "Definitions/policyDefinitions" -Recurse -Filter "*.json"
+          foreach ($f in $files) {
+            $name = [IO.Path]::GetFileNameWithoutExtension($f.Name)
+            $dn = az policy definition show --name $name --query "properties.displayName" -o tsv 2>$null
+            if ($LASTEXITCODE -eq 0 -and $dn) { Write-Host "Published: $name → $dn" } else { Write-Host "Warn: $name not found after publish" }
+          }

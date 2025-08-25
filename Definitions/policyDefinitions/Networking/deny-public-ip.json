@@ -1,0 +1,25 @@
+{
+  "name": "deny-public-ip",
+  "properties": {
+    "displayName": "Deny public IP on NICs",
+    "policyType": "Custom",
+    "mode": "All",
+    "description": "Denies network interfaces with public IP.",
+    "metadata": { "category": "Networking" },
+    "parameters": {},
+    "policyRule": {
+      "if": {
+        "allOf": [
+          { "field": "type", "equals": "Microsoft.Network/networkInterfaces" },
+          {
+            "count": {
+              "field": "Microsoft.Network/networkInterfaces/ipconfigurations[*].publicIpAddress.id"
+            },
+            "greater": 0
+          }
+        ]
+      },
+      "then": { "effect": "deny" }
+    }
+  }
+}
