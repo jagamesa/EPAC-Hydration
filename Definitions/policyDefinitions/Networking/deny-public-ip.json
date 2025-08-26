@@ -1,28 +1,32 @@
 {
-    "name": "deny-public-ip",
-    "properties": {
-        "displayName": "Deny public IP on NICs",
-        "policyType": "Custom",
-        "mode": "All",
-        "description": "Denies network interfaces that have a Public IP associated on any ipConfiguration.",
-        "metadata": { "category": "Networking" },
-        "parameters": {},
-        "policyRule": {
-            "if": {
-                "allOf": [
-                    {
-                        "field": "type",
-                        "equals": "Microsoft.Network/networkInterfaces"
-                    },
-                    {
-                        "count": {
-                            "field": "Microsoft.Network/networkInterfaces/ipConfigurations[*].publicIPAddress.id"
-                        },
-                        "greater": 0
-                    }
-                ]
-            },
-            "then": { "effect": "Deny" }
-        }
-    }
+	"name": "deny-public-ip",
+	"properties": {
+		"displayName": "Deny public IP on NICs",
+		"policyType": "Custom",
+		"mode": "All",
+		"description": "Denies NICs that have a Public IP in any ipConfiguration.",
+		"metadata": { "category": "Networking" },
+		"parameters": {},
+		"policyRule": {
+			"if": {
+				"allOf": [
+					{
+						"field": "type",
+						"equals": "Microsoft.Network/networkInterfaces"
+					},
+					{
+						"count": {
+							"field": "Microsoft.Network/networkInterfaces/ipConfigurations[*]",
+							"where": {
+								"field": "Microsoft.Network/networkInterfaces/ipConfigurations[*].publicIPAddress.id",
+								"exists": true
+							}
+						},
+						"greater": 0
+					}
+				]
+			},
+			"then": { "effect": "Deny" }
+		}
+	}
 }
