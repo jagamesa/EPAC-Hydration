@@ -2,7 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/Azure/enterprise-azure-policy-as-code/main/Schemas/policy-assignment-schema.json",
   "nodeName": "/Network/",
   "definitionEntry": {
-    "policyName": "deny-public-ip" // debe coincidir con el 'name' de tu definición
+    "policyName": "deny-public-ip" // coincide con 'name' de la definición
   },
   "assignment": {
     "name": "asg-deny-public-ip",
@@ -15,8 +15,13 @@
     { "message": "Las NICs con Public IP serán denegadas." }
   ],
   "scope": {
-    "tenant": [
-      "/subscriptions/<TU-SUBSCRIPTION-ID>"
+    // despliega en producción (tenant01) a un MG raíz:
+    "tenant01": [
+      "/providers/Microsoft.Management/managementGroups/<MG-ROOT-ID>"
+    ],
+    // despliega en dev (epac-dev) a una suscripción:
+    "epac-dev": [
+      "/subscriptions/<SUBSCRIPTION_ID>"
     ]
   }
 }
