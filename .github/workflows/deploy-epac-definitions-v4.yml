@@ -1,0 +1,86 @@
+name: deploy-epac-definitions-v4
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - "Definitions/**/*.json"
+      - "Definitions/**/*.jsonc"
+      - "Definitions/**/*.csv"
+      - ".github/workflows/deploy-epac-definitions-v3.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    name: EPAC Plan & Deploy (${{ matrix.pac_env }})
+    runs-on: ubuntu-latest
+    # Matriz: añade/quita entornos EPAC aquí
+    strategy:
+      matrix:
+        include:
+          - pac_env: tenant
+            gh_environment: prod
+          - pac_env: epac-dev
+            gh_environment: dev
+    environment: ${{ matrix.gh_environment }}   # approvals y secretos por entorno
+    concurrency:
+      group: epac-${{ matrix.pac_env }}         # evita colisiones por entorno
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Debug – show workflow + files
+        shell: bash
+        run: |
+          echo "REF=$GITHUB_REF  SHA=$GITHUB_SHA  WORKFLOW=$GITHUB_WORKFLOW"
+          echo "PAC_ENV=${{ matrix.pac_env }}  GH_ENV=${{ matrix.gh_environment }}"
+          echo "--- WORKFLOW FILE CONTENT ---"
+          sed -n '1,200p' .github/workflows/deploy-epac-definitions-v3.yml || true
+          echo "----- EPAC Definitions changed -----"
+          find Definitions -type f \( -name '*.json' -o -name '*.jsonc' -o -name '*.csv' \) -print || true
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install EPAC module
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module EnterprisePolicyAsCode -Scope CurrentUser -Force
+
+      - name: Build EPAC deployment plans (${{ matrix.pac_env }})
+        shell: pwsh
+        run: |
+          Build-DeploymentPlans `
+            -PacEnvironmentSelector '${{ matrix.pac_env }}' `
+            -DefinitionsRootFolder './Definitions' `
+            -OutputFolder './Output/${{ matrix.pac_env }}' `
+            -Interactive:$false
+
+      - name: Deploy policy plan (${{ matrix.pac_env }})
+        shell: pwsh
+        run: |
+          Deploy-PolicyPlan `
+            -PacEnvironmentSelector '${{ matrix.pac_env }}' `
+            -DefinitionsRootFolder './Definitions' `
+            -InputFolder './Output/${{ matrix.pac_env }}' `
+            -Interactive:$false
+
+      # (Opcional) Sólo si tienes DeployIfNotExists/Modify con roles/MI:
+      # - name: Deploy roles plan (${{ matrix.pac_env }})
+      #   shell: pwsh
+      #   run: |
+      #     Deploy-RolesPlan `
+      #       -PacEnvironmentSelector '${{ matrix.pac_env }}' `
+      #       -DefinitionsRootFolder './Definitions' `
+      #       -InputFolder './Output/${{ matrix.pac_env }}' `
+      #       -Interactive:$false
