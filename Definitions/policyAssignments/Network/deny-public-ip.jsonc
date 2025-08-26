@@ -2,26 +2,21 @@
   "$schema": "https://raw.githubusercontent.com/Azure/enterprise-azure-policy-as-code/main/Schemas/policy-assignment-schema.json",
   "nodeName": "/Network/",
   "definitionEntry": {
-    "policyName": "deny-public-ip",
-    "displayName": "Deny public IP on NICs"
+    "policyName": "deny-public-ip" // debe coincidir con el 'name' de tu definición
   },
   "assignment": {
-    "name": "deny-public-ip", // ojo al límite de 24 chars
+    "name": "asg-deny-public-ip",
     "displayName": "Deny public IP on NICs",
-    "description": "Impide NICs con IP pública asociada en alguna ipConfiguration."
+    "description": "NICs con IP pública no están permitidas",
+    "enforcementMode": "Default"
   },
-  // No hay parámetros en tu policy; si algún día parametrizas 'effect', irían aquí.
   "parameters": {},
   "nonComplianceMessages": [
-    { "message": "Esta NIC tiene una IP pública asociada en alguna ipConfiguration." }
+    { "message": "Las NICs con Public IP serán denegadas." }
   ],
   "scope": {
-    // Elige el/los scopes según tu entorno EPAC
     "tenant": [
-      "/providers/Microsoft.Management/managementGroups/<MG-ROOT-ID>"
+      "/subscriptions/<TU-SUBSCRIPTION-ID>"
     ]
-    // Ejemplos alternativos:
-    // "epac-dev": [ "/providers/Microsoft.Management/managementGroups/epac-dev" ],
-    // "tenant":   [ "/subscriptions/<SUBSCRIPTION_ID>" ]
   }
 }

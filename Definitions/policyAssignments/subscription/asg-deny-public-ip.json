@@ -1,16 +1,22 @@
 {
-  "name": "asg-deny-public-ip",
-  "displayName": "Deny public IP on NICs",
-  "description": "NICs con IP pública no están permitidas",
-  "scope": {
-    "subscriptionId": "<TU-SUBSCRIPTION-ID>"
-  },
+  "$schema": "https://raw.githubusercontent.com/Azure/enterprise-azure-policy-as-code/main/Schemas/policy-assignment-schema.json",
+  "nodeName": "/Network/",
   "definitionEntry": {
-    "policyDefinitionName": "deny-public-ip" // coincide con tu definition name
+    "policyName": "deny-public-ip" // debe coincidir con el 'name' de tu definición
   },
-  "enforcementMode": "Default",
+  "assignment": {
+    "name": "asg-deny-public-ip",
+    "displayName": "Deny public IP on NICs",
+    "description": "NICs con IP pública no están permitidas",
+    "enforcementMode": "Default"
+  },
+  "parameters": {},
   "nonComplianceMessages": [
     { "message": "Las NICs con Public IP serán denegadas." }
   ],
-  "parameters": {}
+  "scope": {
+    "tenant": [
+      "/subscriptions/<TU-SUBSCRIPTION-ID>"
+    ]
+  }
 }
