@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Azure/enterprise-azure-policy-as-code/main/Schemas/policy-set-definition-schema.json",
+  "name": "net-sec-baseline",
+  "properties": {
+    "displayName": "Network Security Baseline",
+    "description": "Iniciativa mínima de control de red (incluye negar NICs con IP pública).",
+    "metadata": {
+      "category": "Network",
+      "version": "1.0.0"
+    },
+
+    // Sin parámetros porque tu policy 'deny-public-ip' no expone ninguno
+    "parameters": {},
+
+    "policyDefinitions": [
+      {
+        "policyDefinitionReferenceId": "DenyPublicIP",
+        // Referencia a tu policy CUSTOM del repo por 'name'
+        "policyDefinitionName": "deny-public-ip",
+        "groupNames": [ "Network" ]
+      }
+    ],
+
+    // Grupos opcionales (mejoran el reporting en Compliance)
+    "policyDefinitionGroups": [
+      {
+        "name": "Network",
+        "displayName": "Network Controls",
+        "category": "Network"
+      }
+    ]
+  }
+}

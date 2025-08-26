@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Azure/enterprise-azure-policy-as-code/main/Schemas/policy-assignment-schema.json",
+  "nodeName": "/Network/",
+  "definitionEntry": {
+    // Para iniciativas CUSTOM del repo se usa 'policySetName'
+    "policySetName": "net-sec-baseline"
+  },
+  "assignment": {
+    "name": "asg-net-sec-baseline",
+    "displayName": "Network Security Baseline",
+    "description": "Iniciativa de seguridad de red (niega NICs con IP pública).",
+    "enforcementMode": "Default"
+  },
+  // No hay parámetros (tu policy no los expone)
+  "parameters": {},
+  "nonComplianceMessages": [
+    { "message": "Incumple la iniciativa 'Network Security Baseline' (NIC con IP pública no permitida)." }
+  ],
+  "scope": {
+    // PRODUCCIÓN: tu entorno EPAC 'tenant01' con root en el MG 'platform'
+    "tenant01": [
+      "/providers/Microsoft.Management/managementGroups/platform"
+    ],
+    // DESARROLLO: tu entorno 'epac-dev' a una suscripción concreta
+    "epac-dev": [
+      "/subscriptions/<SUBS-DEV-ID>"
+    ]
+  }
+}
