@@ -1,4 +1,4 @@
-name: deploy-epac-definitions-v4
+﻿name: deploy-epac-definitions-v4
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - "Definitions/**/*.json"
       - "Definitions/**/*.jsonc"
       - "Definitions/**/*.csv"
-      - ".github/workflows/deploy-epac-definitions-v3.yml"
+      - ".github/workflows/deploy-epac-definitions-v4.yml"
   workflow_dispatch:
 
 permissions:
@@ -18,69 +18,95 @@ jobs:
   publish:
     name: EPAC Plan & Deploy (${{ matrix.pac_env }})
     runs-on: ubuntu-latest
-    # Matriz: a�ade/quita entornos EPAC aqu�
+
     strategy:
       matrix:
         include:
-          - pac_env: tenant
+          # Ajusta estos nombres a los de tu global-settings.jsonc
+          - pac_env: tenant01
             gh_environment: prod
           - pac_env: epac-dev
             gh_environment: dev
-    environment: ${{ matrix.gh_environment }}   # approvals y secretos por entorno
+
+    environment: ${{ matrix.gh_environment }}
     concurrency:
-      group: epac-${{ matrix.pac_env }}         # evita colisiones por entorno
+      group: epac-${{ matrix.pac_env }}
       cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug � show workflow + files
+      # Diagnóstico rápido (muestra este propio YAML y los ficheros de Definitions)
+      - name: Debug – show workflow + files
         shell: bash
         run: |
           echo "REF=$GITHUB_REF  SHA=$GITHUB_SHA  WORKFLOW=$GITHUB_WORKFLOW"
           echo "PAC_ENV=${{ matrix.pac_env }}  GH_ENV=${{ matrix.gh_environment }}"
-          echo "--- WORKFLOW FILE CONTENT ---"
-          sed -n '1,200p' .github/workflows/deploy-epac-definitions-v3.yml || true
-          echo "----- EPAC Definitions changed -----"
+          echo "--- WORKFLOW FILE CONTENT (.github/workflows/deploy-epac-definitions-v4.yml) ---"
+          sed -n '1,220p' .github/workflows/deploy-epac-definitions-v4.yml || true
+          echo "----- EPAC Definitions files -----"
           find Definitions -type f \( -name '*.json' -o -name '*.jsonc' -o -name '*.csv' \) -print || true
 
+      # Login OIDC + sesión Az para PowerShell
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          enable-AzPSSession: true
 
-      - name: Install EPAC module
-        shell: pwsh
-        run: |
-          Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module EnterprisePolicyAsCode -Scope CurrentUser -Force
+      # Diagnóstico del contexto Az (asegura que Get-AzContext funciona)
+      - name: Diagnose Az context
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: '14.3.0'
+          inlineScript: |
+            Import-Module Az.Accounts -ErrorAction Stop
+            $PSVersionTable
+            $ctx = Get-AzContext
+            Write-Host "AzContext OK → Tenant=$($ctx.Tenant.Id)  Subscription=$($ctx.Subscription.Id)"
 
+      # Instala EPAC y genera planes
       - name: Build EPAC deployment plans (${{ matrix.pac_env }})
-        shell: pwsh
-        run: |
-          Build-DeploymentPlans `
-            -PacEnvironmentSelector '${{ matrix.pac_env }}' `
-            -DefinitionsRootFolder './Definitions' `
-            -OutputFolder './Output/${{ matrix.pac_env }}' `
-            -Interactive:$false
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: '14.3.0'
+          errorActionPreference: 'Stop'
+          inlineScript: |
+            Set-PSRepository PSGallery -InstallationPolicy Trusted
+            Install-Module EnterprisePolicyAsCode -Scope CurrentUser -Force
+            Import-Module EnterprisePolicyAsCode -ErrorAction Stop
+            Build-DeploymentPlans `
+              -PacEnvironmentSelector '${{ matrix.pac_env }}' `
+              -DefinitionsRootFolder './Definitions' `
+              -OutputFolder './Output/${{ matrix.pac_env }}' `
+              -Interactive:$false
 
+      # Despliega definiciones/asignaciones de Policy
       - name: Deploy policy plan (${{ matrix.pac_env }})
-        shell: pwsh
-        run: |
-          Deploy-PolicyPlan `
-            -PacEnvironmentSelector '${{ matrix.pac_env }}' `
-            -DefinitionsRootFolder './Definitions' `
-            -InputFolder './Output/${{ matrix.pac_env }}' `
-            -Interactive:$false
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: '14.3.0'
+          errorActionPreference: 'Stop'
+          inlineScript: |
+            Import-Module EnterprisePolicyAsCode -ErrorAction Stop
+            Deploy-PolicyPlan `
+              -PacEnvironmentSelector '${{ matrix.pac_env }}' `
+              -DefinitionsRootFolder './Definitions' `
+              -InputFolder './Output/${{ matrix.pac_env }}' `
+              -Interactive:$false
 
-      # (Opcional) S�lo si tienes DeployIfNotExists/Modify con roles/MI:
+      # (Opcional) Sólo si tienes efectos DeployIfNotExists/Modify con roles/identidades:
       # - name: Deploy roles plan (${{ matrix.pac_env }})
-      #   shell: pwsh
-      #   run: |
-      #     Deploy-RolesPlan `
-      #       -PacEnvironmentSelector '${{ matrix.pac_env }}' `
-      #       -DefinitionsRootFolder './Definitions' `
-      #       -InputFolder './Output/${{ matrix.pac_env }}' `
-      #       -Interactive:$false
+      #   uses: azure/powershell@v2
+      #   with:
+      #     azPSVersion: '14.3.0'
+      #     errorActionPreference: 'Stop'
+      #     inlineScript: |
+      #       Import-Module EnterprisePolicyAsCode -ErrorAction Stop
+      #       Deploy-RolesPlan `
+      #         -PacEnvironmentSelector '${{ matrix.pac_env }}' `
+      #         -DefinitionsRootFolder './Definitions' `
+      #         -InputFolder './Output/${{ matrix.pac_env }}' `
+      #         -Interactive:$false
