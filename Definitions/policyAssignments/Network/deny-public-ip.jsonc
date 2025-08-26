@@ -17,7 +17,7 @@
   "scope": {
     // despliega en producción (tenant01) a un MG raíz:
     "tenant01": [
-      "/providers/Microsoft.Management/managementGroups/cb3c61df-8e0b-45ae-a943-1f7a0b4aaf0a"
+      "/providers/Microsoft.Management/managementGroups/platform"
     ],
     // despliega en dev (epac-dev) a una suscripción:
     "epac-dev": [
