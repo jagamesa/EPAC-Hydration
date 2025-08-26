@@ -1,0 +1,16 @@
+{
+  "name": "asg-deny-public-ip",
+  "displayName": "Deny public IP on NICs",
+  "description": "NICs con IP pública no están permitidas",
+  "scope": {
+    "subscriptionId": "<TU-SUBSCRIPTION-ID>"
+  },
+  "definitionEntry": {
+    "policyDefinitionName": "deny-public-ip" // coincide con tu definition name
+  },
+  "enforcementMode": "Default",
+  "nonComplianceMessages": [
+    { "message": "Las NICs con Public IP serán denegadas." }
+  ],
+  "parameters": {}
+}
