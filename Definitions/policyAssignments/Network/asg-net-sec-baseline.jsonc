@@ -23,7 +23,7 @@
     ],
     // DESARROLLO: tu entorno 'epac-dev' a una suscripción concreta
     "epac-dev": [
-      "/subscriptions/<SUBS-DEV-ID>"
+      "/subscriptions/1bff6252-a23c-4994-b76b-443e6c935ca9"
     ]
   }
 }
